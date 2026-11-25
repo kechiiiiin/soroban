@@ -247,6 +247,37 @@ export function calculate(input) {
   return { buy, rent, diff };
 }
 
+// 5年ごとの対象年を返す（5,10,15,… 返済期間以下の5の倍数。返済期間が5の倍数でなければ最後に返済期間そのものも足す。
+// 返済期間が5未満なら返済期間の1本だけ。上限は50年）
+export function yearMarks(loanTermYears) {
+  const term = Math.min(50, Math.max(0, Math.round(toNumber(loanTermYears))));
+  if (term <= 0) return [];
+  if (term < 5) return [term];
+  const marks = [];
+  for (let k = 5; k <= term; k += 5) marks.push(k);
+  if (term % 5 !== 0) marks.push(term);
+  return marks;
+}
+
+// 指定した年のリストそれぞれについて、購入・賃貸の総額を計算する
+export function totalsByYears(input, years) {
+  return years.map((y) => {
+    const result = calculate({ ...input, years: y });
+    return { years: y, buyTotal: result.buy.total, rentTotal: result.rent.total };
+  });
+}
+
+// 1年目から maxYears 年目まで1年ずつ計算し、購入総額が賃貸総額を初めて下回る年を返す。
+// 一度も下回らなければ null
+export function findCrossoverYear(input, maxYears) {
+  const max = Math.max(0, Math.round(toNumber(maxYears)));
+  for (let y = 1; y <= max; y++) {
+    const result = calculate({ ...input, years: y });
+    if (result.buy.total < result.rent.total) return y;
+  }
+  return null;
+}
+
 export function mergeWithDefaults(input) {
   const merged = { ...DEFAULTS, ...(input || {}) };
   if (!input || !input.rateChanges) merged.rateChanges = DEFAULTS.rateChanges.map((c) => ({ ...c }));

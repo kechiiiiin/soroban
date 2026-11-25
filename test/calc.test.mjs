@@ -6,6 +6,9 @@ import {
   calculate,
   simulateLoan,
   toNumber,
+  yearMarks,
+  totalsByYears,
+  findCrossoverYear,
 } from "../public/calc.js";
 
 function near(actual, expected, tolerance, message) {
@@ -84,4 +87,37 @@ test("calculate: 不正な入力でも落ちない", () => {
     initialRate: undefined,
   });
   assert.doesNotThrow(() => calculate(input));
+});
+
+test("totalsByYears: 初期値で years=[10] の結果は既存のN=10総額と一致", () => {
+  const input = mergeWithDefaults({});
+  const [row] = totalsByYears(input, [10]);
+
+  assert.equal(row.years, 10);
+  near(row.buyTotal, 1960, 1, "購入総額");
+  near(row.rentTotal, 2336, 1, "賃貸総額");
+});
+
+test("yearMarks: 返済期間32年の対象年は5..30,32", () => {
+  assert.deepEqual(yearMarks(32), [5, 10, 15, 20, 25, 30, 32]);
+});
+
+test("yearMarks: 5の倍数の返済期間はそのまま・5未満は1本・上限50年", () => {
+  assert.deepEqual(yearMarks(20), [5, 10, 15, 20]);
+  assert.deepEqual(yearMarks(3), [3]);
+  assert.deepEqual(yearMarks(0), []);
+  assert.deepEqual(yearMarks(60), [5, 10, 15, 20, 25, 30, 35, 40, 45, 50]);
+});
+
+test("findCrossoverYear: 初期値では返済期間中に購入が賃貸を下回る年がある", () => {
+  const input = mergeWithDefaults({});
+  const year = findCrossoverYear(input, DEFAULTS.loanTermYears);
+  assert.ok(typeof year === "number" && year >= 1 && year <= DEFAULTS.loanTermYears);
+
+  const before = calculate({ ...input, years: year - 1 });
+  const at = calculate({ ...input, years: year });
+  if (year > 1) {
+    assert.ok(before.buy.total >= before.rent.total, "逆転の前年はまだ購入が高い/同額のはず");
+  }
+  assert.ok(at.buy.total < at.rent.total, "その年で購入が賃貸を下回るはず");
 });

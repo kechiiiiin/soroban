@@ -36,6 +36,9 @@ details .row span:first-child{flex-shrink:0}
 button#reset{background:#fff;border:1px solid #ddd6ca;border-radius:8px;padding:8px 14px;font-size:13px;color:#5c554b;cursor:pointer}
 button#reset:active{background:#f0ece4}
 .rc{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.chartLegend{display:flex;justify-content:center;gap:16px;font-size:12px;color:#5c554b;margin-top:4px}
+.chartLegend .sw{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px;vertical-align:middle}
+#chartSvg{display:block;width:100%;height:auto}
 </style>
 </head>
 <body>
@@ -102,10 +105,129 @@ button#reset:active{background:#f0ece4}
 <div class="diffline" id="out-diff"></div>
 </div>
 
+<div class="card" style="padding:10px 12px">
+<div class="sec" style="margin:0 0 8px">5年ごとの総額</div>
+<svg id="chartSvg" viewBox="0 0 320 185" preserveAspectRatio="none"></svg>
+<div class="chartLegend">
+  <span><span class="sw" style="background:#2f6b5b"></span>購入</span>
+  <span><span class="sw" style="background:#a0572c"></span>賃貸</span>
+</div>
+<div class="diffline" id="out-crossover" style="font-size:13px"></div>
+</div>
+
 <div class="btnrow"><button id="reset" type="button">初期値に戻す</button></div>
 
 <script type="module">
-import { DEFAULTS, mergeWithDefaults, calculate, toNumber } from "./calc.js";
+import {
+  DEFAULTS,
+  mergeWithDefaults,
+  calculate,
+  toNumber,
+  yearMarks,
+  totalsByYears,
+  findCrossoverYear,
+} from "./calc.js";
+
+const SVG_NS = "http://www.w3.org/2000/svg";
+const CHART_W = 320;
+const CHART_H = 185;
+const CHART_SIDE_PAD = 6; // 両端の余白（数字がはみ出さないように）
+const CHART_TOP_PAD = 38; // 棒の上の数字（縦書き）の余白
+const CHART_BOTTOM_PAD = 18; // 横軸ラベルの余白
+
+function formatInt(n) {
+  return Math.round(n).toLocaleString("ja-JP");
+}
+
+function drawChart(input) {
+  const svg = document.getElementById("chartSvg");
+  while (svg.firstChild) svg.removeChild(svg.firstChild);
+
+  const loanTermYears = toNumber(input.loanTermYears, DEFAULTS.loanTermYears);
+  const marks = yearMarks(loanTermYears);
+  const crossover = findCrossoverYear(input, loanTermYears);
+
+  const crossoverEl = document.getElementById("out-crossover");
+  if (loanTermYears <= 0) {
+    crossoverEl.textContent = "";
+  } else if (crossover === 1) {
+    crossoverEl.textContent = "最初から購入が安い";
+  } else if (crossover === null) {
+    crossoverEl.textContent = "返済期間中は賃貸が安い";
+  } else {
+    crossoverEl.innerHTML = `<span class="buy">${crossover}年目</span>から購入が安い`;
+  }
+
+  if (marks.length === 0) return;
+
+  const rows = totalsByYears(input, marks);
+  const maxVal = Math.max(1, ...rows.map((r) => Math.max(r.buyTotal, r.rentTotal)));
+  const chartH = CHART_H - CHART_TOP_PAD - CHART_BOTTOM_PAD;
+  const n = rows.length;
+  const plotW = CHART_W - CHART_SIDE_PAD * 2;
+  const groupW = plotW / n;
+  const barGap = Math.min(4, groupW * 0.08); // 棒2本の間の隙間
+  const barW = Math.max(4, Math.min(15, (groupW - barGap) / 2 - 2));
+  // 棒が狭いほど数字を縦書きにして、横の重なりを避ける
+  const vertical = barW + barGap < 22;
+  const valueFontSize = n > 7 ? 7.5 : n > 4 ? 8.5 : 9.5;
+  const axisFontSize = n > 7 ? 8 : 9;
+
+  function placeValueLabel(x, y, text, fill) {
+    const label = document.createElementNS(SVG_NS, "text");
+    label.setAttribute("font-size", String(valueFontSize));
+    label.setAttribute("fill", fill);
+    label.textContent = text;
+    if (vertical) {
+      label.setAttribute("x", String(x));
+      label.setAttribute("y", String(y));
+      label.setAttribute("text-anchor", "start");
+      label.setAttribute("transform", `rotate(-90 ${x} ${y})`);
+    } else {
+      label.setAttribute("x", String(x));
+      label.setAttribute("y", String(y));
+      label.setAttribute("text-anchor", "middle");
+    }
+    svg.appendChild(label);
+  }
+
+  rows.forEach((row, i) => {
+    const groupX = CHART_SIDE_PAD + i * groupW;
+    const buyH = (row.buyTotal / maxVal) * chartH;
+    const rentH = (row.rentTotal / maxVal) * chartH;
+    const buyX = groupX + groupW / 2 - barGap / 2 - barW;
+    const rentX = groupX + groupW / 2 + barGap / 2;
+    const baseline = CHART_TOP_PAD + chartH;
+
+    const buyRect = document.createElementNS(SVG_NS, "rect");
+    buyRect.setAttribute("x", String(buyX));
+    buyRect.setAttribute("y", String(baseline - buyH));
+    buyRect.setAttribute("width", String(barW));
+    buyRect.setAttribute("height", String(buyH));
+    buyRect.setAttribute("fill", "#2f6b5b");
+    svg.appendChild(buyRect);
+
+    const rentRect = document.createElementNS(SVG_NS, "rect");
+    rentRect.setAttribute("x", String(rentX));
+    rentRect.setAttribute("y", String(baseline - rentH));
+    rentRect.setAttribute("width", String(barW));
+    rentRect.setAttribute("height", String(rentH));
+    rentRect.setAttribute("fill", "#a0572c");
+    svg.appendChild(rentRect);
+
+    placeValueLabel(buyX + barW / 2, Math.max(9, baseline - buyH - 3), formatInt(row.buyTotal), "#2f6b5b");
+    placeValueLabel(rentX + barW / 2, Math.max(9, baseline - rentH - 3), formatInt(row.rentTotal), "#a0572c");
+
+    const axisLabel = document.createElementNS(SVG_NS, "text");
+    axisLabel.setAttribute("x", String(groupX + groupW / 2));
+    axisLabel.setAttribute("y", String(CHART_H - 4));
+    axisLabel.setAttribute("text-anchor", "middle");
+    axisLabel.setAttribute("font-size", String(axisFontSize));
+    axisLabel.setAttribute("fill", "#8a8175");
+    axisLabel.textContent = row.years + "年";
+    svg.appendChild(axisLabel);
+  });
+}
 
 const STORAGE_KEY = "soroban-input-v1";
 
@@ -192,6 +314,8 @@ function render() {
   } else {
     diffEl.textContent = "購入と賃貸はほぼ同額";
   }
+
+  drawChart(input);
 }
 
 function init() {
