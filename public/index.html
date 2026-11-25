@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>算盤 — 住宅ローンと賃貸の総額比較</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,"Hiragino Sans",sans-serif;background:#f6f3ec;color:#2b2722;font-size:15px;line-height:1.5;padding-bottom:30px}
+header{padding:16px 20px 8px;display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+header h1{font-size:20px;font-weight:700;letter-spacing:.05em}
+header span{font-size:12px;color:#8a8175}
+.card{background:#fff;border-radius:14px;margin:10px 14px;padding:14px 16px;box-shadow:0 1px 2px rgba(0,0,0,.06)}
+.lbl{font-size:12px;color:#8a8175}
+.buy{color:#2f6b5b}
+.rent{color:#a0572c}
+.row{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid #f0ece4;gap:10px}
+.row:last-child{border-bottom:none}
+.in{border:1px solid #ddd6ca;border-radius:8px;padding:5px 8px;width:80px;text-align:right;font-size:15px;background:#fcfbf8;font-variant-numeric:tabular-nums}
+.big{font-size:26px;font-weight:700;font-variant-numeric:tabular-nums}
+.num{font-variant-numeric:tabular-nums}
+.sec{font-size:13px;font-weight:700;color:#5c554b;margin:14px 20px 4px}
+table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+th,td{padding:7px 4px;border-bottom:1px solid #f0ece4;text-align:right;font-size:14px}
+th{font-size:12px}
+td:first-child,th:first-child{text-align:left;color:#5c554b}
+.grp td{font-size:12px;font-weight:700;color:#8a8175;padding-top:12px;text-align:left}
+.na{color:#ccc}
+.tot td{font-size:18px;font-weight:700;border-bottom:none;padding-top:10px}
+.diffline{text-align:center;font-weight:700;padding:8px 0 2px}
+details{margin-top:10px}
+summary{cursor:pointer;font-size:13px;color:#5c554b;padding:4px 0}
+details .row span:first-child{flex-shrink:0}
+.unit{font-size:12px;color:#8a8175;white-space:nowrap}
+.btnrow{display:flex;justify-content:flex-end;margin:10px 14px}
+button#reset{background:#fff;border:1px solid #ddd6ca;border-radius:8px;padding:8px 14px;font-size:13px;color:#5c554b;cursor:pointer}
+button#reset:active{background:#f0ece4}
+.rc{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+</style>
+</head>
+<body>
+<header><h1>算盤</h1><span>住宅ローンと賃貸、もろもろ込みの総額を比べる</span></header>
+
+<div class="card" style="padding:10px 14px">
+  <div class="row"><span>比べる年数</span><span><input id="years" class="in" inputmode="decimal" style="width:56px"> 年</span></div>
+</div>
+
+<div class="card" style="padding:8px 12px">
+<table>
+<tr><th></th><th class="buy">購入</th><th class="rent">賃貸</th></tr>
+<tr class="grp"><td colspan="3">入れる数字</td></tr>
+<tr><td>価格／家賃</td><td><input id="price" class="in" inputmode="decimal">万</td><td><input id="rent" class="in" inputmode="decimal">万/月</td></tr>
+<tr><td>頭金</td><td><input id="downPayment" class="in" inputmode="decimal">万</td><td class="na">—</td></tr>
+<tr><td>返済期間</td><td><input id="loanTermYears" class="in" inputmode="decimal">年</td><td class="na">—</td></tr>
+<tr><td>当初金利</td><td><input id="initialRate" class="in" inputmode="decimal">%</td><td class="na">—</td></tr>
+<tr><td>管理費</td><td><input id="managementFee" class="in" inputmode="decimal">万/月</td><td class="na">込み</td></tr>
+<tr><td>修繕積立金</td><td><input id="repairFund" class="in" inputmode="decimal">万/月</td><td class="na">込み</td></tr>
+</table>
+
+<details>
+<summary>細かい設定（金利の変更・諸費用・税・保険・控除・保証・更新・引っ越し） ›</summary>
+
+<div class="sec" style="margin-left:0">購入</div>
+<div class="row"><span>金利の変更 1</span><span class="rc"><input id="rateChangeYear1" class="in" style="width:52px" inputmode="decimal">年目から<input id="rateChangeRate1" class="in" style="width:52px" inputmode="decimal">%</span></div>
+<div class="row"><span>金利の変更 2</span><span class="rc"><input id="rateChangeYear2" class="in" style="width:52px" inputmode="decimal">年目から<input id="rateChangeRate2" class="in" style="width:52px" inputmode="decimal">%</span></div>
+<div class="row"><span>金利の変更 3</span><span class="rc"><input id="rateChangeYear3" class="in" style="width:52px" inputmode="decimal">年目から<input id="rateChangeRate3" class="in" style="width:52px" inputmode="decimal">%</span></div>
+<div class="row"><span>購入時の諸費用率</span><span><input id="feeRate" class="in" inputmode="decimal">%</span></div>
+<div class="row"><span>固定資産税・都市計画税</span><span><input id="propertyTax" class="in" inputmode="decimal">万/年</span></div>
+<div class="row"><span>修繕積立金の値上がり</span><span class="rc"><input id="repairIncreaseInterval" class="in" style="width:52px" inputmode="decimal">年ごとに<input id="repairIncreaseRate" class="in" style="width:52px" inputmode="decimal">%</span></div>
+<div class="row"><span>火災・地震保険</span><span><input id="insuranceBuy" class="in" inputmode="decimal">万/年</span></div>
+<div class="row"><span>ローン控除</span><span class="rc"><input id="deductionRate" class="in" style="width:52px" inputmode="decimal">%・<input id="deductionYears" class="in" style="width:52px" inputmode="decimal">年・上限<input id="deductionCap" class="in" style="width:70px" inputmode="decimal">万</span></div>
+
+<div class="sec" style="margin-left:0">賃貸</div>
+<div class="row"><span>敷金／礼金／仲介</span><span class="rc"><input id="depositMonths" class="in" style="width:48px" inputmode="decimal">／<input id="keyMoneyMonths" class="in" style="width:48px" inputmode="decimal">／<input id="agentFeeMonths" class="in" style="width:48px" inputmode="decimal">か月</span></div>
+<div class="row"><span>保証会社</span><span class="rc">初回家賃の<input id="guaranteeInitialRate" class="in" style="width:52px" inputmode="decimal">％・2年目から毎年<input id="guaranteeAnnual" class="in" style="width:52px" inputmode="decimal">万</span></div>
+<div class="row"><span>更新料</span><span class="rc"><input id="renewalInterval" class="in" style="width:48px" inputmode="decimal">年ごとに家賃<input id="renewalMonths" class="in" style="width:48px" inputmode="decimal">か月分</span></div>
+<div class="row"><span>火災保険（賃貸）</span><span class="rc"><input id="insuranceRent" class="in" style="width:52px" inputmode="decimal">万／<input id="insuranceRentInterval" class="in" style="width:48px" inputmode="decimal">年</span></div>
+
+<div class="sec" style="margin-left:0">共通</div>
+<div class="row"><span>引っ越し費用（両方に1回）</span><span><input id="movingCost" class="in" inputmode="decimal">万</span></div>
+</details>
+</div>
+
+<div class="card" style="padding:8px 12px">
+<table>
+<tr><th></th><th class="buy">購入</th><th class="rent">賃貸</th></tr>
+<tr class="grp"><td colspan="3"><span id="yearsLabel">N</span>年間で払う額の内訳</td></tr>
+<tr><td>元金</td><td id="out-principal"></td><td class="na">—</td></tr>
+<tr><td>利息</td><td id="out-interest"></td><td class="na">—</td></tr>
+<tr><td>諸費用</td><td id="out-fee"></td><td class="na">—</td></tr>
+<tr><td>税金</td><td id="out-tax"></td><td class="na">—</td></tr>
+<tr><td>管理・修繕</td><td id="out-maintenance"></td><td class="na">—</td></tr>
+<tr><td>保険</td><td id="out-insurance-buy"></td><td id="out-insurance-rent"></td></tr>
+<tr><td>ローン控除</td><td id="out-deduction" class="buy"></td><td class="na">—</td></tr>
+<tr><td>家賃</td><td class="na">—</td><td id="out-rent"></td></tr>
+<tr><td>敷金・礼金・仲介</td><td class="na">—</td><td id="out-depositEtc"></td></tr>
+<tr><td>保証料</td><td class="na">—</td><td id="out-guarantee"></td></tr>
+<tr><td>更新料</td><td class="na">—</td><td id="out-renewal"></td></tr>
+<tr><td>引っ越し</td><td id="out-movingCost-buy"></td><td id="out-movingCost-rent"></td></tr>
+<tr class="tot"><td>総額</td><td class="buy" id="out-total-buy"></td><td class="rent" id="out-total-rent"></td></tr>
+</table>
+<div class="diffline" id="out-diff"></div>
+</div>
+
+<div class="btnrow"><button id="reset" type="button">初期値に戻す</button></div>
+
+<script type="module">
+import { DEFAULTS, mergeWithDefaults, calculate, toNumber } from "./calc.js";
+
+const STORAGE_KEY = "soroban-input-v1";
+
+const simpleIds = [
+  "years", "price", "downPayment", "loanTermYears", "initialRate",
+  "managementFee", "repairFund", "feeRate", "propertyTax",
+  "repairIncreaseInterval", "repairIncreaseRate", "insuranceBuy",
+  "deductionRate", "deductionYears", "deductionCap",
+  "rent", "depositMonths", "keyMoneyMonths", "agentFeeMonths",
+  "guaranteeInitialRate", "guaranteeAnnual",
+  "renewalInterval", "renewalMonths",
+  "insuranceRent", "insuranceRentInterval", "movingCost",
+];
+
+function readInputFromForm() {
+  const input = {};
+  for (const id of simpleIds) {
+    const el = document.getElementById(id);
+    if (el) input[id] = el.value;
+  }
+  input.rateChanges = [1, 2, 3].map((i) => ({
+    fromYear: document.getElementById("rateChangeYear" + i)?.value ?? "",
+    rate: document.getElementById("rateChangeRate" + i)?.value ?? "",
+  }));
+  return input;
+}
+
+function writeFormFromInput(input) {
+  const merged = mergeWithDefaults(input);
+  for (const id of simpleIds) {
+    const el = document.getElementById(id);
+    if (el) el.value = merged[id];
+  }
+  const changes = merged.rateChanges || [];
+  for (let i = 0; i < 3; i++) {
+    const c = changes[i] || {};
+    const yearEl = document.getElementById("rateChangeYear" + (i + 1));
+    const rateEl = document.getElementById("rateChangeRate" + (i + 1));
+    if (yearEl) yearEl.value = c.fromYear ?? "";
+    if (rateEl) rateEl.value = c.rate ?? "";
+  }
+}
+
+function formatYen(n) {
+  const rounded = Math.round(n);
+  return rounded.toLocaleString("ja-JP") + "万";
+}
+
+function render() {
+  const raw = readInputFromForm();
+  const input = mergeWithDefaults(raw);
+  const result = calculate(input);
+
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(raw));
+
+  document.getElementById("yearsLabel").textContent = String(toNumber(input.years, DEFAULTS.years));
+
+  const b = result.buy.items;
+  const r = result.rent.items;
+
+  document.getElementById("out-principal").textContent = formatYen(b.principal);
+  document.getElementById("out-interest").textContent = formatYen(b.interest);
+  document.getElementById("out-fee").textContent = formatYen(b.fee);
+  document.getElementById("out-tax").textContent = formatYen(b.tax);
+  document.getElementById("out-maintenance").textContent = formatYen(b.maintenance);
+  document.getElementById("out-insurance-buy").textContent = formatYen(b.insurance);
+  document.getElementById("out-insurance-rent").textContent = formatYen(r.insurance);
+  document.getElementById("out-deduction").textContent = formatYen(b.deduction);
+  document.getElementById("out-rent").textContent = formatYen(r.rent);
+  document.getElementById("out-depositEtc").textContent = formatYen(r.depositEtc);
+  document.getElementById("out-guarantee").textContent = formatYen(r.guarantee);
+  document.getElementById("out-renewal").textContent = formatYen(r.renewal);
+  document.getElementById("out-movingCost-buy").textContent = formatYen(b.movingCost);
+  document.getElementById("out-movingCost-rent").textContent = formatYen(r.movingCost);
+  document.getElementById("out-total-buy").textContent = formatYen(result.buy.total);
+  document.getElementById("out-total-rent").textContent = formatYen(result.rent.total);
+
+  const diffEl = document.getElementById("out-diff");
+  const diff = Math.round(result.diff);
+  if (diff > 0) {
+    diffEl.innerHTML = `購入が <span class="buy">${diff.toLocaleString("ja-JP")}万円</span> 少ない`;
+  } else if (diff < 0) {
+    diffEl.innerHTML = `賃貸が <span class="rent">${Math.abs(diff).toLocaleString("ja-JP")}万円</span> 少ない`;
+  } else {
+    diffEl.textContent = "購入と賃貸はほぼ同額";
+  }
+}
+
+function init() {
+  let stored = null;
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) stored = JSON.parse(raw);
+  } catch (e) {
+    stored = null;
+  }
+  writeFormFromInput(stored || {});
+
+  for (const id of simpleIds) {
+    document.getElementById(id)?.addEventListener("input", render);
+  }
+  for (let i = 1; i <= 3; i++) {
+    document.getElementById("rateChangeYear" + i)?.addEventListener("input", render);
+    document.getElementById("rateChangeRate" + i)?.addEventListener("input", render);
+  }
+
+  document.getElementById("reset").addEventListener("click", () => {
+    localStorage.removeItem(STORAGE_KEY);
+    writeFormFromInput({});
+    render();
+  });
+
+  render();
+}
+
+init();
+</script>
+</body>
+</html>
